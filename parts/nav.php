@@ -20,7 +20,7 @@ $menu = new Menu();
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
-                <?php echo $menu->getMenu("header"); ?>
+                <?php echo $menu->getMenuFromFile("header"); ?>
             </ul>
         </div>
     </div>
