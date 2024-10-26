@@ -9,7 +9,7 @@ class Menu
            'class' => "nav-item",
            'class-a' => "nav-link click-scroll",
            'href' => "#top",
-           'content' => "Homeeeeeeeeeee",
+           'content' => "Home"
         ],
         1 => [
             'class' => "nav-item",
@@ -64,6 +64,23 @@ class Menu
 
     public function getMenu($type = "header"): string
     {
+        $serverUrl = $_SERVER['REQUEST_URI'];
+        $urlParts = explode("/", $serverUrl);
+        $newUrlParts = [];
+        foreach ($urlParts as $part) {
+            if(!empty($part)) {
+                $newUrlParts[] = $part;
+            }
+        }
+        $numberOfUrlParts = count($newUrlParts);
+        if($numberOfUrlParts === 1) {
+            $useOriginal = true;
+        } elseif ($numberOfUrlParts === 2 && $newUrlParts[1] === 'index.php') {
+            $useOriginal = true;
+        } else {
+            $useOriginal = false;
+        }
+
         $html = "";
 
         if($type === "header") {
@@ -88,10 +105,23 @@ class Menu
                     }
                     $html .= '</ul></li>';
                 } else {
-                    $html .= '<li class="'.$menu['class'].'">
+                    if(!$useOriginal) {
+                        if($menu['href'] === $newUrlParts[1]) {
+                            $link = $menu['href'];
+                        } else {
+                            $link = "index.php";
+                        }
+                        $html .= '<li class="'.$menu['class'].'">
+                                <a class="'.$menu['class-a'].'" 
+                                href="'.$link.'">'.$menu['content'].'</a>
+                              </li>';
+                    } else {
+                        $html .= '<li class="'.$menu['class'].'">
                                 <a class="'.$menu['class-a'].'" 
                                 href="'.$menu['href'].'">'.$menu['content'].'</a>
                               </li>';
+                    }
+
                 }
             }
         }
