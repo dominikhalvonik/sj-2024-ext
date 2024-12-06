@@ -301,4 +301,70 @@ class Menu
             }
         }
     }
+
+    public function getMenuFromDatabase($type = "header"): string
+    {
+        // Načítanie aktuálnej URL
+        $serverUrl = $_SERVER['REQUEST_URI'];
+        $urlParts = explode("/", $serverUrl);
+        $newUrlParts = array_filter($urlParts, fn($part) => !empty($part));
+        $numberOfUrlParts = count($newUrlParts);
+        $useOriginal = $numberOfUrlParts === 1 || ($numberOfUrlParts === 2 && $newUrlParts[1] === 'index.php');
+
+        // Načítanie menu z databázy
+        $menuSQL = "SELECT * FROM menu";
+        $menuItemsSQL = "SELECT * FROM menu_item WHERE menu_id = :menu_id";
+
+        $menuStmt = $this->connection->prepare($menuSQL);
+        $menuItemsStmt = $this->connection->prepare($menuItemsSQL);
+
+        $menuStmt->execute();
+        $menuData = $menuStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $html = "";
+
+        if ($type === "header") {
+            foreach ($menuData as $menu) {
+                // Ak má položka submenu
+                $menuItemsStmt->execute([':menu_id' => $menu['id']]);
+                $submenuItems = $menuItemsStmt->fetchAll(\PDO::FETCH_ASSOC);
+
+                if (!empty($submenuItems)) {
+                    $html .= '<li class="' . $menu['class'] . '">
+                            <a class="' . $menu['class-a'] . '" 
+                            href="' . $menu['href'] . '" 
+                            id="' . $menu['css-id'] . '" 
+                            role="' . $menu['role'] . '" 
+                            data-bs-toggle="' . $menu['data-bs-toggle'] . '" 
+                            aria-expanded="' . $menu['aria-expanded'] . '">' . $menu['content'] . '</a>
+
+                            <ul class="' . $menu['class-ul'] . '" aria-labelledby="' . $menu['aria-labelledby'] . '">';
+
+                    foreach ($submenuItems as $item) {
+                        $html .= '<li>
+                                <a class="' . $item['class'] . '" 
+                                href="' . $item['href'] . '">' . $item['content'] . '</a>
+                              </li>';
+                    }
+                    $html .= '</ul></li>';
+                } else {
+                    // Ak nemá submenu
+                    if (!$useOriginal) {
+                        $link = ($menu['href'] === $newUrlParts[1]) ? $menu['href'] : "index.php";
+                        $html .= '<li class="' . $menu['class'] . '">
+                                <a class="' . $menu['class-a'] . '" 
+                                href="' . $link . '">' . $menu['content'] . '</a>
+                              </li>';
+                    } else {
+                        $html .= '<li class="' . $menu['class'] . '">
+                                <a class="' . $menu['class-a'] . '" 
+                                href="' . $menu['href'] . '">' . $menu['content'] . '</a>
+                              </li>';
+                    }
+                }
+            }
+        }
+
+        return $html;
+    }
 }
