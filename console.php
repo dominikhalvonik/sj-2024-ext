@@ -7,3 +7,5 @@ $menu = new Menu();
 if(!file_exists("menu.json")) {
     $menu->saveDataToFile();
 }
+
+$menu->insertMenuDataToDatabase();

@@ -236,4 +236,69 @@ class Menu
 
         return $html;
     }
+
+    public function insertMenuDataToDatabase()
+    {
+        $menuDataFromFile = file_get_contents("menu.json");
+        $this->menu = json_decode($menuDataFromFile, true);
+
+        // Príprava SQL pre hlavné menu
+        $menuInsertSQL = "INSERT INTO menu (`class`, `class-a`, `href`, `css-id`, `role`, `data-bs-toggle`, `aria-expanded`, `content`, `class-ul`, `aria-labelledby`) 
+                  VALUES (:class, :class_a, :href, :css_id, :role, :data_bs_toggle, :aria_expanded, :content, :class_ul, :aria_labelledby)";
+        $menuInsertStmt = $this->connection->prepare($menuInsertSQL);
+
+        // Príprava SQL pre submenu
+        $menuItemInsertSQL = "INSERT INTO menu_item (`class`, `href`, `content`, `menu_id`) 
+                      VALUES (:class, :href, :content, :menu_id)";
+        $menuItemInsertStmt = $this->connection->prepare($menuItemInsertSQL);
+
+        // Spracovanie JSON dát
+        foreach ($this->menu as $menu) {
+            // Hodnoty pre hlavnú položku menu
+            $class = $menu['class'] ?? '';
+            $class_a = $menu['class-a'] ?? '';
+            $href = $menu['href'] ?? '';
+            $css_id = $menu['id'] ?? '';
+            $role = $menu['role'] ?? '';
+            $data_bs_toggle = $menu['data-bs-toggle'] ?? '';
+            $aria_expanded = $menu['aria-expanded'] ?? '';
+            $content = $menu['content'] ?? '';
+            $class_ul = $menu['class-ul'] ?? '';
+            $aria_labelledby = $menu['aria-labelledby'] ?? '';
+
+            // Vloženie hlavnej položky menu
+            $menuInsertStmt->execute([
+                ':class' => $class,
+                ':class_a' => $class_a,
+                ':href' => $href,
+                ':css_id' => $css_id,
+                ':role' => $role,
+                ':data_bs_toggle' => $data_bs_toggle,
+                ':aria_expanded' => $aria_expanded,
+                ':content' => $content,
+                ':class_ul' => $class_ul,
+                ':aria_labelledby' => $aria_labelledby,
+            ]);
+
+            // Získanie ID vloženej hlavnej položky
+            $menuId = $this->connection->lastInsertId();
+
+            // Spracovanie submenu položiek, ak existujú
+            if (!empty($menu['items'])) {
+                foreach ($menu['items'] as $item) {
+                    $menuItemClass = $item['class'] ?? '';
+                    $menuItemHref = $item['href'] ?? '';
+                    $menuItemContent = $item['content'] ?? '';
+
+                    // Vloženie submenu položky
+                    $menuItemInsertStmt->execute([
+                        ':class' => $menuItemClass,
+                        ':href' => $menuItemHref,
+                        ':content' => $menuItemContent,
+                        ':menu_id' => $menuId,
+                    ]);
+                }
+            }
+        }
+    }
 }
